@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adjacency Multi-List Representation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f0f0f0;
+    }
+    .container {
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .container-inner {
+      display: flex;
+      align-items: flex-start;
+      gap: 50px;
+      background: white;
+      padding-left: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    .label-list, .node-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .label {
+      width: 40px;
+      font-weight: bold;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    td {
+      width: 50px;
+      height: 40px;
+      border: 2px solid #333;
+      text-align: center;
+      vertical-align: middle;
+      background-color: #fafafa;
+    }
+    .node_name {
+      width: 40px;
+      height: 40px;
+      border: 2px solid #00000000;
+      border-right: #333 solid 2px;
+      text-align: center;
+      vertical-align: middle;
+      background-color: #fafafa;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Adjacency Multi-List</h1>
+    <div class="container-inner" id="graph-container">
+      <canvas id="arrow-canvas"></canvas>
+      <div class="label-list" id="label-list"></div>
+      <div class="node-list" id="node-list"></div>
+    </div>
+  </div>
+  <script>
+    async function drawGraph() {
+  const params = new URLSearchParams(window.location.search);
+  const graphPath = params.get("graph") || "graph.json";
+  const response = await fetch(graphPath);
+  const { nodes, edges } = await response.json();
+
+  const labelContainer = document.getElementById("label-list");
+  const nodeContainer = document.getElementById("node-list");
+
+  // Build adjacency list for undirected graph
+  const adjacencyLinks = {};
+  nodes.forEach(n => adjacencyLinks[n] = []);
+  edges.forEach((edge, idx) => {
+    adjacencyLinks[edge.from].push(idx);
+    adjacencyLinks[edge.to].push(idx);
+  });
+
+  // Sort edges for consistency (optional, based on your needs)
+  nodes.forEach(n => adjacencyLinks[n].sort((a, b) => a - b));
+
+  const labelElements = {};
+  const nodeElements = [];
+
+  nodes.forEach((node) => {
+    const table = document.createElement("table");
+    const tr = document.createElement("tr");
+    const td1 = document.createElement("td");
+    td1.className = "label";
+    td1.textContent = node;
+    const td2 = document.createElement("td");
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    table.appendChild(tr);
+    labelContainer.appendChild(table);
+    labelElements[node] = td2;
+  });
+
+  edges.forEach((edge, idx) => {
+    const table = document.createElement("table");
+    const tr = document.createElement("tr");
+
+    const NodeName = document.createElement("td");
+    NodeName.className = "node_name";
+    NodeName.textContent = "N " + idx;
+    tr.appendChild(NodeName);
+
+    const m = document.createElement("td");
+    m.textContent = "T";
+    tr.appendChild(m);
+
+    const v1 = document.createElement("td");
+    v1.textContent = edge.from;
+    tr.appendChild(v1);
+
+    const v2 = document.createElement("td");
+    v2.textContent = edge.to;
+    tr.appendChild(v2);
+
+    const l1 = document.createElement("td");
+    const l2 = document.createElement("td");
+
+    const fromList = adjacencyLinks[edge.from];
+    const toList = adjacencyLinks[edge.to];
+
+    const fromIdx = fromList.indexOf(idx);
+    const toIdx = toList.indexOf(idx);
+
+    l1.textContent = fromIdx + 1 < fromList.length ? fromList[fromIdx + 1] : "null";
+    l2.textContent = toIdx + 1 < toList.length ? toList[toIdx + 1] : "null";
+
+    tr.appendChild(l1);
+    tr.appendChild(l2);
+
+    table.appendChild(tr);
+    nodeContainer.appendChild(table);
+    nodeElements.push(table);
+  });
+
+  const canvas = document.getElementById('arrow-canvas');
+  const container = document.getElementById('graph-container');
+  canvas.width = container.offsetWidth;
+  canvas.height = container.offsetHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = 'black';
+  ctx.fillStyle = 'black';
+  ctx.lineWidth = 2;
+
+  function drawArrow(x1, y1, x2, y2) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    const headlen = 10;
+    const hx = x2 - headlen * Math.cos(angle);
+    const hy = y2 - headlen * Math.sin(angle);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(hx + 5 * Math.sin(angle), hy - 5 * Math.cos(angle));
+    ctx.lineTo(hx - 5 * Math.sin(angle), hy + 5 * Math.cos(angle));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  nodes.forEach(node => {
+    const labelCell = labelElements[node];
+    const edgeIndex = adjacencyLinks[node][0];
+    if (labelCell && edgeIndex != null && nodeElements[edgeIndex]) {
+      const fromRect = labelCell.getBoundingClientRect();
+      const toRect = nodeElements[edgeIndex].getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const x1 = fromRect.left + fromRect.width / 2 - containerRect.left;
+      const y1 = fromRect.top + fromRect.height / 2 - containerRect.top;
+      const x2 = toRect.left - containerRect.left;
+      const y2 = toRect.top + toRect.height / 2 - containerRect.top;
+      drawArrow(x1, y1, x2, y2);
+    }
+  });
+}
+drawGraph();
+  </script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Graph Representations Viewer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      /* padding: 20px; */
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .controls {
+      margin-bottom: 20px;
+      padding: 10px;
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .views {
+      display: flex;
+      flex-direction: column;
+      /* gap: 20px; */
+    }
+    iframe {
+      width: 100%;
+      border: 1px solid #00000000;
+      display: none;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      margin-top: 10px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Graph Representations Viewer</h1>
+
+  <div class="controls">
+    <label>
+      <input type="checkbox" id="view1" checked onclick="updateViews()">
+      Adjacency List
+    </label><br>
+    <label>
+      <input type="checkbox" id="view2" checked onclick="updateViews()">
+      Adjacency Matrix
+    </label><br>
+    <label>
+      <input type="checkbox" id="view3" checked onclick="updateViews()">
+      Adjacency Multi-List
+    </label><br><br>
+
+    <label>
+      選擇範例圖形檔案：
+      <select id="jsonSelector"></select>
+    </label>
+
+    <label>
+      <br><br>或直接輸入圖形 JSON（格式：{"nodes": [...], "edges": [...]}）：
+      <textarea id="jsonInput" placeholder='{"nodes": ["0", "1"], "edges": [{"from": "0", "to": "1"}]}'></textarea>
+    </label>
+  </div>
+
+  <div class="views">
+    <iframe id="frame1" src="views/adjacency_list.html"></iframe>
+    <iframe id="frame2" src="views/adjacency_matrix.html"></iframe>
+    <iframe id="frame3" src="views/adjacency_multilist.html"></iframe>
+  </div>
+
+  <script>
+    const graphFiles = [
+      "graph_samples/graph1.json",
+      "graph_samples/graph2.json",
+      "graph_samples/graph3.json",
+      "graph_samples/graph4.json",
+      "graph_samples/graph5.json",
+      "graph_samples/graph6.json"
+    ];
+
+    function populateDropdown() {
+      const select = document.getElementById("jsonSelector");
+      graphFiles.forEach(file => {
+        const option = document.createElement("option");
+        option.value = file;
+        option.textContent = file;
+        select.appendChild(option);
+      });
+    }
+
+    function updateViews() {
+      const jsonPath = document.getElementById('jsonSelector').value;
+      const inputJSON = document.getElementById('jsonInput').value.trim();
+      const usingInput = inputJSON.length > 0;
+
+      const frames = [
+        { checkbox: 'view1', frame: 'frame1', file: 'views/adjacency_matrix.html' },
+        { checkbox: 'view2', frame: 'frame2', file: 'views/adjacency_list.html' },
+        { checkbox: 'view3', frame: 'frame3', file: 'views/adjacency_multilist.html' }
+      ];
+
+      frames.forEach(({ checkbox, frame, file }) => {
+        const checked = document.getElementById(checkbox).checked;
+        const iframe = document.getElementById(frame);
+        if (checked) {
+          iframe.style.display = 'block';
+          if (usingInput) {
+            const blob = new Blob([inputJSON], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            iframe.src = `${file}?graph=${encodeURIComponent(url)}`;
+          } else {
+            iframe.src = `${file}?graph=${encodeURIComponent(jsonPath)}`;
+          }
+        } else {
+          iframe.style.display = 'none';
+        }
+      });
+    }
+
+    function autoResizeIframe(iframe) {
+      setTimeout(() => {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          if (doc && doc.body) {
+            const newHeight = doc.body.scrollHeight+20;
+            iframe.style.height = newHeight + 'px';
+          }
+        } catch (e) {
+          console.warn("跨域無法調整 iframe 高度", e);
+        }
+      }, 100);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      populateDropdown();
+      updateViews();
+
+      document.getElementById('view1').addEventListener('change', updateViews);
+      document.getElementById('view2').addEventListener('change', updateViews);
+      document.getElementById('view3').addEventListener('change', updateViews);
+      document.getElementById('jsonSelector').addEventListener('change', updateViews);
+      document.getElementById('jsonInput').addEventListener('input', updateViews);
+
+      const iframes = ["frame1", "frame2", "frame3"];
+      iframes.forEach(id => {
+        const iframe = document.getElementById(id);
+        iframe.addEventListener("load", () => autoResizeIframe(iframe));
+      });
+    });
+
+    window.onload = updateViews;
+  </script>
+</body>
+</html>

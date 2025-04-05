@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adjacency Matrix Representation</title>
+  <style>
+    body {
+      /* font-family: 'Courier New', monospace; */
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      padding: 20px;
+    }
+    .container {
+      /* max-width: 800px; */
+      margin: 0 auto;
+      background: white;
+      padding-left: 20px;
+      padding-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .matrix-container {
+      position: relative;
+      display: inline-block;
+    }
+    canvas.bracket-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    table.matrix-table {
+      border-collapse: collapse;
+      z-index: 1;
+      position: relative;
+    }
+    table.matrix-table td, table.matrix-table th {
+      width: 40px;
+      height: 40px;
+      text-align: center;
+      vertical-align: middle;
+      border: none;
+    }
+    table.matrix-table th {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <br>
+    <h1>Adjacency Matrix</h1>
+    <div class="matrix-container" id="matrix-container">
+      <canvas class="bracket-canvas" id="bracket-canvas"></canvas>
+      <table class="matrix-table" id="matrix-table">
+        <thead>
+          <tr id="header-row">
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="matrix-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <script>
+    async function drawMatrix() {
+      const params = new URLSearchParams(window.location.search);
+      const graphPath = params.get("graph") || "graph.json";
+      const response = await fetch(graphPath);
+      console.log(response);
+      if (!response.ok) {
+        console.error("Failed to fetch graph data:", response.statusText);
+        return;
+      }
+      const { nodes, edges } = await response.json();
+
+      const nodeIndex = {};
+      nodes.forEach((n, i) => nodeIndex[n] = i);
+
+      const size = nodes.length;
+      const matrix = Array.from({ length: size }, () => Array(size).fill(0));
+      edges.forEach(({ from, to }) => {
+        const i = nodeIndex[from];
+        const j = nodeIndex[to];
+        matrix[i][j] = 1;
+        matrix[j][i] = 1;
+      });
+
+      const table = document.getElementById("matrix-table");
+      const headerRow = document.getElementById("header-row");
+      const matrixBody = document.getElementById("matrix-body");
+
+      // 清空內容
+      headerRow.innerHTML = '<th></th>';
+      matrixBody.innerHTML = "";
+
+      // 加上上方欄位標籤
+      nodes.forEach(n => {
+        const th = document.createElement("th");
+        th.textContent = n;
+        headerRow.appendChild(th);
+      });
+
+      // 建立表格內容與左側列名
+      matrix.forEach((row, i) => {
+        const tr = document.createElement("tr");
+        const th = document.createElement("th");
+        th.textContent = nodes[i];
+        tr.appendChild(th);
+
+        row.forEach(val => {
+          const td = document.createElement("td");
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+        matrixBody.appendChild(tr);
+      });
+
+      // 繪製中括號
+      requestAnimationFrame(() => {
+        const container = document.getElementById("matrix-container");
+        const canvas = document.getElementById("bracket-canvas");
+        const tableBox = table.getBoundingClientRect();
+        const containerBox = container.getBoundingClientRect();
+
+        const width = container.offsetWidth;
+        const height = container.offsetHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, width, height);
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+
+        const offsetLeft = tableBox.left - containerBox.left;
+        const offsetTop = tableBox.top - containerBox.top;
+
+        const oneCellWidth = 45; // 每個格子的寬(長)度 40+5
+        const bracketXStart = offsetLeft + oneCellWidth; // 扣掉左側標籤一格寬度
+        const bracketYStart = offsetTop + oneCellWidth; // 扣掉上方標籤一格高度
+        const bracketHeight = table.offsetHeight - oneCellWidth;
+        const bracketWidth = table.offsetWidth - oneCellWidth;
+
+        // 左中括號
+        ctx.beginPath();
+        ctx.moveTo(bracketXStart + 5, bracketYStart);
+        ctx.lineTo(bracketXStart, bracketYStart);
+        ctx.lineTo(bracketXStart, bracketYStart + bracketHeight);
+        ctx.lineTo(bracketXStart + 5, bracketYStart + bracketHeight);
+        ctx.stroke();
+
+        // 右中括號
+        const offsetRight = bracketXStart + bracketWidth;
+        ctx.beginPath();
+        ctx.moveTo(offsetRight - 5, bracketYStart);
+        ctx.lineTo(offsetRight, bracketYStart);
+        ctx.lineTo(offsetRight, bracketYStart + bracketHeight);
+        ctx.lineTo(offsetRight - 5, bracketYStart + bracketHeight);
+        ctx.stroke();
+      });
+    }
+
+    drawMatrix();
+  </script>
+</body>
+</html>
