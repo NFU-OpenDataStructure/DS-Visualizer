@@ -81,11 +81,11 @@
 
       const size = nodes.length;
       const matrix = Array.from({ length: size }, () => Array(size).fill(0));
-      edges.forEach(({ from, to }) => {
+      edges.forEach(({ from, to, weight }) => {
         const i = nodeIndex[from];
         const j = nodeIndex[to];
-        matrix[i][j] = 1;
-        matrix[j][i] = 1;
+        matrix[i][j] = weight||1;
+        matrix[j][i] = weight||1;
       });
 
       const table = document.getElementById("matrix-table");

@@ -64,9 +64,9 @@
       nodes.forEach(node => adjacencyMap[node] = []);
 
       // Build undirected adjacency list
-      edges.forEach(({ from, to }) => {
-        adjacencyMap[from].push(to);
-        adjacencyMap[to].push(from);
+      edges.forEach(({ from, to, weight }) => {
+        adjacencyMap[from].push({to, weight});
+        adjacencyMap[to].push({from, weight});
       });
 
       const container = document.getElementById("adjacency-list");
@@ -102,8 +102,13 @@
           const adjTable = document.createElement("table");
           const adjRow = document.createElement("tr");
           const adjData = document.createElement("td");
-          adjData.textContent = adj;
+          adjData.textContent = adj.to||adj.from;
           adjRow.appendChild(adjData);
+          if ((adj.weight||null) !== null) {
+            const wData = document.createElement("td");
+            wData.textContent = adj.weight;
+            adjRow.appendChild(wData);
+          }
           const adjNext = document.createElement("td");
           adjNext.textContent = index === adjacencyMap[node].length - 1 ? "null" : "";
           adjRow.appendChild(adjNext);

@@ -133,6 +133,12 @@
     v2.textContent = edge.to;
     tr.appendChild(v2);
 
+    if ((edge.weight||null) !== null) {
+      const wData = document.createElement("td");
+      wData.textContent = edge.weight;
+      tr.appendChild(wData);
+    }
+
     const l1 = document.createElement("td");
     const l2 = document.createElement("td");
 
